@@ -14,6 +14,13 @@
                     <p><strong>Trạng Thái:</strong> <span class="badge bg-warning"><?= ucfirst($order['status']) ?></span></p>
                     <p><strong>Tổng Tiền:</strong> <strong><?= formatMoney($order['total_price']) ?></strong></p>
                     <p><strong>Ngày Tạo:</strong> <?= formatDate($order['created_at']) ?></p>
+                    
+                    <?php if($order['reservation_id']) { 
+                        $reservationModel = new Reservation();
+                        $tableList = $reservationModel->getTableNumbers($order['reservation_id']);
+                    ?>
+                        <p><strong>🪑 Bàn:</strong> <?= $tableList ?></p>
+                    <?php } ?>
                 </div>
             </div>
 

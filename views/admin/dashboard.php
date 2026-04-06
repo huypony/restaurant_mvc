@@ -49,6 +49,15 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">💰 Doanh Thu Tháng</h5>
+                    <h2 class="text-danger"><?= formatMoney($monthlyRevenue ?? 0) ?></h2>
+                    <a href="<?= BASE_URL ?>index.php?act=admin-revenue" class="btn btn-sm btn-danger">Xem Chi Tiết</a>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="row">
@@ -76,6 +85,9 @@
                         </a>
                         <a href="<?= BASE_URL ?>index.php?act=admin-orders" class="list-group-item list-group-item-action">
                             📦 Quản Lý Đơn Hàng
+                        </a>
+                        <a href="<?= BASE_URL ?>index.php?act=admin-revenue" class="list-group-item list-group-item-action">
+                            💰 Xem Doanh Thu
                         </a>
                         <a href="<?= BASE_URL ?>index.php?act=admin-users" class="list-group-item list-group-item-action">
                             👥 Quản Lý Người Dùng

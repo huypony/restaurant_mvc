@@ -79,12 +79,15 @@
                                     <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
                                         <option value="pending" <?= $res['status'] === 'pending' ? 'selected' : '' ?>>Pending</option>
                                         <option value="confirmed" <?= $res['status'] === 'confirmed' ? 'selected' : '' ?>>Confirmed</option>
+                                        <option value="checkin" <?= $res['status'] === 'checkin' ? 'selected' : '' ?>>Check-in</option>
+                                        <option value="completed" <?= $res['status'] === 'completed' ? 'selected' : '' ?>>Completed</option>
                                         <option value="cancelled" <?= $res['status'] === 'cancelled' ? 'selected' : '' ?>>Cancelled</option>
                                     </select>
                                 </form>
                             </td>
                             <td>
                                 <a href="<?= BASE_URL ?>index.php?act=order-create&reservation_id=<?= $res['id'] ?>" class="btn btn-sm btn-info">📋</a>
+                                <a href="<?= BASE_URL ?>index.php?act=admin-manage-tables&id=<?= $res['id'] ?>" class="btn btn-sm btn-warning">🪑</a>
                             </td>
                         </tr>
                     <?php } ?>

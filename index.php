@@ -79,8 +79,12 @@ match ($act) {
     'admin-delete-category' => (new AdminController())->deleteCategory(),
     'admin-reservations' => (new AdminController())->reservations(),
     'admin-update-reservation' => (new AdminController())->updateReservation(),
+    'admin-manage-tables' => (new AdminController())->manageTables(),
+    'admin-assign-tables' => (new AdminController())->assignTables(),
+    'admin-remove-table' => (new AdminController())->removeTableAssignment(),
     'admin-orders' => (new AdminController())->orders(),
     'admin-update-order' => (new AdminController())->updateOrder(),
+    'admin-revenue' => (new AdminController())->revenue(),
     
     default => (new HomeController())->index(),
 };  

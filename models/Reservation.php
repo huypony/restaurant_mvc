@@ -166,5 +166,75 @@ class Reservation {
         $stmt->execute([':id' => $id]);
         return $stmt->fetch();
     }
+
+    // Lấy tất cả bàn được gán cho một đặt bàn (ghép bàn)
+    public function getTablesByReservation($reservation_id) {
+        $conn = connectDB();
+        $sql = "SELECT rt.*, t.table_number, t.capacity, t.status 
+                FROM reservation_tables rt 
+                JOIN tables t ON rt.table_id = t.id 
+                WHERE rt.reservation_id = :reservation_id
+                ORDER BY t.table_number";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([':reservation_id' => $reservation_id]);
+        return $stmt->fetchAll();
+    }
+
+    // Gán bàn cho đặt bàn (thêm vào table ghép)
+    public function assignTable($reservation_id, $table_id) {
+        $conn = connectDB();
+        // Kiểm tra xem bàn đã được gán chưa
+        $sql = "SELECT id FROM reservation_tables WHERE reservation_id = :reservation_id AND table_id = :table_id";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([':reservation_id' => $reservation_id, ':table_id' => $table_id]);
+        if($stmt->fetch()) {
+            return true; // Đã tồn tại
+        }
+
+        // Thêm bàn vào đặt bàn
+        $sql = "INSERT INTO reservation_tables(reservation_id, table_id) VALUES(:reservation_id, :table_id)";
+        $stmt = $conn->prepare($sql);
+        return $stmt->execute([':reservation_id' => $reservation_id, ':table_id' => $table_id]);
+    }
+
+    // Xóa bàn từ đặt bàn (bỏ từ table ghép)
+    public function removeTable($reservation_id, $table_id) {
+        $conn = connectDB();
+        $sql = "DELETE FROM reservation_tables WHERE reservation_id = :reservation_id AND table_id = :table_id";
+        $stmt = $conn->prepare($sql);
+        return $stmt->execute([':reservation_id' => $reservation_id, ':table_id' => $table_id]);
+    }
+
+    // Xóa tất cả bàn từ đặt bàn
+    public function clearTables($reservation_id) {
+        $conn = connectDB();
+        $sql = "DELETE FROM reservation_tables WHERE reservation_id = :reservation_id";
+        $stmt = $conn->prepare($sql);
+        return $stmt->execute([':reservation_id' => $reservation_id]);
+    }
+
+    // Lấy tổng sức chứa của all tables gán cho đặt bàn
+    public function getReservationCapacity($reservation_id) {
+        $conn = connectDB();
+        $sql = "SELECT SUM(t.capacity) as total_capacity FROM reservation_tables rt 
+                JOIN tables t ON rt.table_id = t.id 
+                WHERE rt.reservation_id = :reservation_id";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([':reservation_id' => $reservation_id]);
+        $result = $stmt->fetch();
+        return $result['total_capacity'] ?? 0;
+    }
+
+    // Lấy danh sách bàn dưới dạng string để hiển thị
+    public function getTableNumbers($reservation_id) {
+        $conn = connectDB();
+        $sql = "SELECT GROUP_CONCAT(t.table_number, ', ') as table_list FROM reservation_tables rt 
+                JOIN tables t ON rt.table_id = t.id 
+                WHERE rt.reservation_id = :reservation_id";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([':reservation_id' => $reservation_id]);
+        $result = $stmt->fetch();
+        return $result['table_list'] ?? 'Chưa có bàn';
+    }
 }
 

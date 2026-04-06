@@ -1,7 +1,10 @@
 <?php require 'views/layouts/header.php'; ?>
 
 <div class="container">
-    <h2 class="mb-4">Quản Lý Đơn Hàng</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Quản Lý Đơn Hàng</h2>
+        <a href="<?= BASE_URL ?>index.php?act=admin-revenue" class="btn btn-success">📊 Xem Doanh Thu</a>
+    </div>
 
     <?php if(!empty($orders)) { ?>
         <div class="table-responsive">
@@ -9,6 +12,9 @@
                 <thead>
                     <tr>
                         <th>#</th>
+                        <th>Khách Hàng</th>
+                        <th>🪑 Bàn</th>
+                        <th>Số Khách</th>
                         <th>Tổng Tiền</th>
                         <th>Trạng Thái</th>
                         <th>Ngày Tạo</th>
@@ -16,9 +22,19 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach($orders as $order) { ?>
+                    <?php foreach($orders as $order) { 
+                        // Lấy danh sách bàn nếu có reservation_id
+                        $tableList = 'N/A';
+                        if($order['reservation_id']) {
+                            $reservationModel = new Reservation();
+                            $tableList = $reservationModel->getTableNumbers($order['reservation_id']);
+                        }
+                    ?>
                         <tr>
                             <td><?= $order['id'] ?></td>
+                            <td><?= htmlspecialchars($order['customer_name'] ?? 'N/A') ?></td>
+                            <td><?= $tableList ?></td>
+                            <td><?= $order['guest_count'] ?? 'N/A' ?></td>
                             <td><?= formatMoney($order['total_price']) ?></td>
                             <td>
                                 <form method="POST" action="<?= BASE_URL ?>index.php?act=admin-update-order" style="display:inline;">

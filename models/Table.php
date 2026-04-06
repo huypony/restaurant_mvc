@@ -28,24 +28,27 @@ class Table {
         $conn = connectDB();
         
         // Build dynamic update SQL
-        $data[':id'] = $id;
         $setClause = [];
+        $params = [':id' => $id];
         
         if(isset($data[':table_number']) && !empty($data[':table_number'])) {
             $setClause[] = "table_number = :table_number";
+            $params[':table_number'] = $data[':table_number'];
         }
         if(isset($data[':capacity'])) {
             $setClause[] = "capacity = :capacity";
+            $params[':capacity'] = $data[':capacity'];
         }
         if(isset($data[':status'])) {
             $setClause[] = "status = :status";
+            $params[':status'] = $data[':status'];
         }
         
         if(empty($setClause)) return false;
         
         $sql = "UPDATE tables SET " . implode(', ', $setClause) . " WHERE id = :id";
         $stmt = $conn->prepare($sql);
-        return $stmt->execute($data);
+        return $stmt->execute($params);
     }
 
     public function delete($id) {
@@ -59,6 +62,14 @@ class Table {
         $conn = connectDB();
         $sql = "SELECT * FROM tables WHERE status = 'available' ORDER BY table_number";
         return $conn->query($sql)->fetchAll();
+    }
+
+    public function getAvailableByCapacity($min_capacity) {
+        $conn = connectDB();
+        $sql = "SELECT * FROM tables WHERE status = 'available' AND capacity >= :capacity ORDER BY capacity ASC";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([':capacity' => $min_capacity]);
+        return $stmt->fetchAll();
     }
 
     public function getByStatus($status) {

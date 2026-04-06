@@ -27,6 +27,11 @@ class AdminController {
         $totalReservations = count($reservationModel->all());
         $totalOrders = count($orderModel->all());
         $totalTables = count($tableModel->all());
+        
+        // Get current month revenue
+        $monthStart = date('Y-m-01');
+        $monthEnd = date('Y-m-d');
+        $monthlyRevenue = $orderModel->getTotalRevenue($monthStart, $monthEnd);
 
         require 'views/admin/dashboard.php';
     }
@@ -222,19 +227,19 @@ class AdminController {
             
             // Giải phóng bàn cũ nếu có
             if($oldTableId && $oldTableId > 0) {
-                $tableModel->update($oldTableId, [':status' => 'available', ':table_number' => '']);
+                $tableModel->update($oldTableId, [':status' => 'available']);
             }
             
             // Chiếm bàn mới
-            $newTableStatus = ($status === 'confirmed' || $status === 'pending') ? 'occupied' : 'available';
-            $tableModel->update($table_id, [':status' => $newTableStatus, ':table_number' => '']);
+            $newTableStatus = ($status === 'confirmed' || $status === 'pending' || $status === 'checkin') ? 'occupied' : 'available';
+            $tableModel->update($table_id, [':status' => $newTableStatus]);
         } else if($table_id > 0 && isset($data[':status'])) {
             // Cập nhật status bàn khi trạng thái đặt bàn thay đổi
             $tableStatus = 'available';
-            if($data[':status'] === 'confirmed' || $data[':status'] === 'pending') {
+            if($data[':status'] === 'confirmed' || $data[':status'] === 'pending' || $data[':status'] === 'checkin') {
                 $tableStatus = 'occupied';
             }
-            $tableModel->update($table_id, [':status' => $tableStatus, ':table_number' => '']);
+            $tableModel->update($table_id, [':status' => $tableStatus]);
         }
 
         if(!empty($data)) {
@@ -246,6 +251,110 @@ class AdminController {
         }
 
         redirect(BASE_URL . 'index.php?act=admin-reservations');
+    }
+
+    public function manageTables() {
+        if(!isLoggedIn() || !isAdmin()) {
+            redirect(BASE_URL);
+        }
+
+        $reservation_id = intval($_GET['id'] ?? 0);
+        if(!$reservation_id) {
+            redirect(BASE_URL . 'index.php?act=admin-reservations');
+        }
+
+        $reservationModel = new Reservation();
+        $tableModel = new Table();
+
+        $reservation = $reservationModel->findById($reservation_id);
+        if(!$reservation) {
+            $_SESSION['error'] = 'Đặt bàn không tồn tại!';
+            redirect(BASE_URL . 'index.php?act=admin-reservations');
+        }
+
+        // Lấy bàn đã gán cho đặt bàn này
+        $assignedTables = $reservationModel->getTablesByReservation($reservation_id);
+        
+        // Lấy danh sách bàn trống
+        $availableTables = $tableModel->all();
+
+        require 'views/admin/manage-tables.php';
+    }
+
+    public function assignTables() {
+        if($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect(BASE_URL . 'index.php?act=admin-reservations');
+        }
+
+        $reservation_id = intval($_POST['reservation_id'] ?? 0);
+        $table_ids = $_POST['table_ids'] ?? [];
+
+        if(!$reservation_id) {
+            $_SESSION['error'] = 'Đặt bàn không hợp lệ!';
+            redirect(BASE_URL . 'index.php?act=admin-reservations');
+        }
+
+        $reservationModel = new Reservation();
+        $tableModel = new Table();
+        $reservation = $reservationModel->findById($reservation_id);
+
+        if(!$reservation) {
+            $_SESSION['error'] = 'Đặt bàn không tồn tại!';
+            redirect(BASE_URL . 'index.php?act=admin-reservations');
+        }
+
+        // Xóa tất cả bàn cũ
+        $reservationModel->clearTables($reservation_id);
+
+        // Tính tổng sức chứa
+        $total_capacity = 0;
+        $table_numbers = [];
+
+        if(!empty($table_ids)) {
+            foreach($table_ids as $table_id) {
+                $table_id = intval($table_id);
+                if($table_id > 0) {
+                    // Gán bàn mới
+                    $reservationModel->assignTable($reservation_id, $table_id);
+                    
+                    // Cập nhật status bàn thành occupied
+                    $table = $tableModel->findById($table_id);
+                    if($table) {
+                        $tableModel->update($table_id, [':status' => 'occupied']);
+                        $total_capacity += $table['capacity'];
+                        $table_numbers[] = $table['table_number'];
+                    }
+                }
+            }
+        }
+
+        $_SESSION['success'] = 'Gán bàn thành công! (' . count($table_numbers) . ' bàn, sức chứa: ' . $total_capacity . ' khách)';
+        redirect(BASE_URL . 'index.php?act=admin-manage-tables&id=' . $reservation_id);
+    }
+
+    public function removeTableAssignment() {
+        if($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect(BASE_URL . 'index.php?act=admin-reservations');
+        }
+
+        $reservation_id = intval($_POST['reservation_id'] ?? 0);
+        $table_id = intval($_POST['table_id'] ?? 0);
+
+        if(!$reservation_id || !$table_id) {
+            redirect(BASE_URL . 'index.php?act=admin-reservations');
+        }
+
+        $reservationModel = new Reservation();
+        $tableModel = new Table();
+
+        // Xóa bàn khỏi đặt bàn
+        $reservationModel->removeTable($reservation_id, $table_id);
+
+        // Cập nhật status bàn thành available
+        $tableModel->update($table_id, [':status' => 'available']);
+
+        $_SESSION['success'] = 'Xóa bàn thành công!';
+        redirect(BASE_URL . 'index.php?act=admin-manage-tables&id=' . $reservation_id);
     }
 
     public function orders() {
@@ -279,6 +388,37 @@ class AdminController {
         }
 
         redirect(BASE_URL . 'index.php?act=admin-orders');
+    }
+
+    public function revenue() {
+        if(!isLoggedIn() || !isAdmin()) {
+            redirect(BASE_URL);
+        }
+
+        $orderModel = new Order();
+        
+        // Lấy date range từ request
+        $from_date = sanitize($_GET['from_date'] ?? '');
+        $to_date = sanitize($_GET['to_date'] ?? '');
+        
+        // Nếu không có date range, lấy tháng hiện tại
+        if(empty($from_date)) {
+            $from_date = date('Y-m-01');
+        }
+        if(empty($to_date)) {
+            $to_date = date('Y-m-d');
+        }
+
+        // Lấy các dữ liệu cần thiết
+        $totalRevenue = $orderModel->getTotalRevenue($from_date, $to_date);
+        $revenueByDate = $orderModel->getRevenueByDate($from_date, $to_date);
+        $revenueStatistics = $orderModel->getRevenueStatistics($from_date, $to_date);
+        $completedOrders = $orderModel->getCompletedOrders($from_date, $to_date);
+        
+        // Lấy tất cả tháng
+        $revenueByMonth = $orderModel->getRevenueByMonth();
+
+        require 'views/admin/revenue.php';
     }
 
     public function categories() {

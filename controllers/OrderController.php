@@ -3,6 +3,7 @@ require_once 'models/Order.php';
 require_once 'models/OrderDetail.php';
 require_once 'models/Food.php';
 require_once 'models/Payment.php';
+require_once 'models/Reservation.php';
 
 class OrderController {
 
@@ -53,20 +54,40 @@ class OrderController {
             $total_price += $food['price'] * $quantity;
         }
 
-        $data = [
-            ':reservation_id' => $reservation_id,
-            ':user_id' => $_SESSION['user']['id'],
-            ':total_price' => $total_price,
-            ':status' => 'pending'
-        ];
-
-        $order_id = $orderModel->create($data);
+        // Check if there's already a pending order for this reservation
+        $existingOrder = $orderModel->getPendingByReservation($reservation_id);
+        $isNewOrder = !$existingOrder;
         
-        if(!$order_id) {
-            $_SESSION['error'] = 'Tạo đơn hàng thất bại!';
-            redirect(BASE_URL . 'index.php?act=order-create');
+        if($existingOrder) {
+            // Update existing order
+            $order_id = $existingOrder['id'];
+            $updateData = [
+                ':status' => 'pending',
+                ':total_price' => $existingOrder['total_price'] + $total_price
+            ];
+            
+            if(!$orderModel->update($order_id, $updateData)) {
+                $_SESSION['error'] = 'Cập nhật đơn hàng thất bại!';
+                redirect(BASE_URL . 'index.php?act=order-create&reservation_id=' . $reservation_id);
+            }
+        } else {
+            // Create new order
+            $data = [
+                ':reservation_id' => $reservation_id,
+                ':user_id' => $_SESSION['user']['id'],
+                ':total_price' => $total_price,
+                ':status' => 'pending'
+            ];
+
+            $order_id = $orderModel->create($data);
+            
+            if(!$order_id) {
+                $_SESSION['error'] = 'Tạo đơn hàng thất bại!';
+                redirect(BASE_URL . 'index.php?act=order-create');
+            }
         }
 
+        // Add order details
         foreach($items as $item) {
             $food_id = intval($item['food_id']);
             $quantity = intval($item['quantity']);
@@ -89,7 +110,7 @@ class OrderController {
             }
         }
 
-        $_SESSION['success'] = 'Tạo đơn hàng thành công!';
+        $_SESSION['success'] = $isNewOrder ? 'Tạo đơn hàng thành công!' : 'Cập nhật đơn hàng thành công!';
         redirect(BASE_URL . 'index.php?act=order-detail&id=' . $order_id);
     }
 
