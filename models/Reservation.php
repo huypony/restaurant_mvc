@@ -236,5 +236,8 @@ class Reservation {
         $result = $stmt->fetch();
         return $result['table_list'] ?? 'Chưa có bàn';
     }
+
+
+    
 }
 
