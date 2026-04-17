@@ -395,28 +395,62 @@ class AdminController {
             redirect(BASE_URL);
         }
 
-        $orderModel = new Order();
-        
-        // Lấy date range từ request
-        $from_date = sanitize($_GET['from_date'] ?? '');
-        $to_date = sanitize($_GET['to_date'] ?? '');
-        
-        // Nếu không có date range, lấy tháng hiện tại
-        if(empty($from_date)) {
-            $from_date = date('Y-m-01');
-        }
-        if(empty($to_date)) {
-            $to_date = date('Y-m-d');
-        }
+        try {
+            $orderModel = new Order();
+            
+            // Lấy date range từ request (GET hoặc POST)
+            $from_date = ($_POST['from_date'] ?? $_GET['from_date'] ?? '');
+            $to_date = ($_POST['to_date'] ?? $_GET['to_date'] ?? '');
+            
+            // Sanitize dates (chỉ lấy format date, không escape)
+            $from_date = trim($from_date);
+            $to_date = trim($to_date);
+            
+            // Nếu không có date range, lấy tháng hiện tại
+            if(empty($from_date)) {
+                $from_date = date('Y-m-01');
+            }
+            if(empty($to_date)) {
+                $to_date = date('Y-m-d');
+            }
+            
+            // Validate date format
+            if(!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from_date) || 
+               !preg_match('/^\d{4}-\d{2}-\d{2}$/', $to_date)) {
+                $_SESSION['error'] = 'Định dạng ngày không hợp lệ';
+                $from_date = date('Y-m-01');
+                $to_date = date('Y-m-d');
+            }
+            
+            // Ensure from_date <= to_date
+            if($from_date > $to_date) {
+                $temp = $from_date;
+                $from_date = $to_date;
+                $to_date = $temp;
+            }
 
-        // Lấy các dữ liệu cần thiết
-        $totalRevenue = $orderModel->getTotalRevenue($from_date, $to_date);
-        $revenueByDate = $orderModel->getRevenueByDate($from_date, $to_date);
-        $revenueStatistics = $orderModel->getRevenueStatistics($from_date, $to_date);
-        $completedOrders = $orderModel->getCompletedOrders($from_date, $to_date);
-        
-        // Lấy tất cả tháng
-        $revenueByMonth = $orderModel->getRevenueByMonth();
+            // Lấy các dữ liệu cần thiết
+            $totalRevenue = $orderModel->getTotalRevenue($from_date, $to_date) ?? 0;
+            $revenueByDate = $orderModel->getRevenueByDate($from_date, $to_date) ?? [];
+            $revenueStatistics = $orderModel->getRevenueStatistics($from_date, $to_date) ?? [];
+            $completedOrders = $orderModel->getCompletedOrders($from_date, $to_date) ?? [];
+            
+            // Lấy tất cả tháng
+            $revenueByMonth = $orderModel->getRevenueByMonth() ?? [];
+            
+            if(isset($_SESSION['error'])) {
+                unset($_SESSION['error']);
+            }
+        } catch (Exception $e) {
+            $_SESSION['error'] = 'Lỗi khi tải doanh thu: ' . $e->getMessage();
+            $from_date = date('Y-m-01');
+            $to_date = date('Y-m-d');
+            $totalRevenue = 0;
+            $revenueByDate = [];
+            $revenueStatistics = [];
+            $completedOrders = [];
+            $revenueByMonth = [];
+        }
 
         require 'views/admin/revenue.php';
     }

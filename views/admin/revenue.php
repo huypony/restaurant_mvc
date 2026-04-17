@@ -6,7 +6,14 @@
     <!-- Filter Date -->
     <div class="card mb-4">
         <div class="card-body">
-            <form method="GET" action="<?= BASE_URL ?>index.php?act=admin-revenue" class="row g-3">
+            <?php if(isset($_SESSION['error'])): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <?= $_SESSION['error'] ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <?php unset($_SESSION['error']); ?>
+            <?php endif; ?>
+            <form method="POST" action="<?= BASE_URL ?>index.php?act=admin-revenue" class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label">Từ Ngày</label>
                     <input type="date" class="form-control" name="from_date" value="<?= htmlspecialchars($from_date) ?>">
@@ -40,7 +47,7 @@
                     <h3 class="card-text text-success">
                         <strong><?= formatMoney($totalRevenue) ?></strong>
                     </h3>
-                    <small class="text-muted"><?= $from_date ?> đến <?= $to_date ?></small>
+                    <small class="text-muted"><?= htmlspecialchars($from_date) ?> đến <?= htmlspecialchars($to_date) ?></small>
                 </div>
             </div>
         </div>
