@@ -44,7 +44,14 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach($reservations as $res) { ?>
+                    <?php foreach($reservations as $res) { 
+                        // Lấy danh sách bàn nếu có reservation_id
+                        $tableList = 'N/A';
+                        if($res['id']) {
+                            $reservationModel = new Reservation();
+                            $tableList = $reservationModel->getTableNumbers($res['id']);
+                        }
+                    ?>
                         <tr>
                             <td><?= $res['id'] ?></td>
                             <td><?= htmlspecialchars($res['customer_name']) ?></td>
@@ -53,29 +60,12 @@
                                     <?= htmlspecialchars($res['customer_phone']) ?>
                                 </a>
                             </td>
-                            <td>
-                                <form method="POST" action="<?= BASE_URL ?>index.php?act=admin-update-reservation" style="display:inline;">
-                                    <input type="hidden" name="id" value="<?= $res['id'] ?>">
-                                    <input type="hidden" name="status" value="<?= htmlspecialchars($res['status']) ?>">
-                                    <select name="table_id" class="form-select form-select-sm" onchange="this.form.submit()">
-                                        <option value="">-- Chọn Bàn --</option>
-                                        <?php foreach($tables as $table) { 
-                                            $isSelected = isset($res['table_id']) && $res['table_id'] == $table['id'] ? 'selected' : '';
-                                            $statusBadge = ucfirst($table['status'] ?? 'available');
-                                        ?>
-                                            <option value="<?= $table['id'] ?>" <?= $isSelected ?>>
-                                                Bàn <?= htmlspecialchars($table['table_number']) ?> (<?= $statusBadge ?>)
-                                            </option>
-                                        <?php } ?>
-                                    </select>
-                                </form>
-                            </td>
+                            <td><?= $tableList ?></td>
                             <td><?= formatDate($res['reservation_time']) ?></td>
                             <td><?= htmlspecialchars($res['guest_count']) ?></td>
                             <td>
                                 <form method="POST" action="<?= BASE_URL ?>index.php?act=admin-update-reservation" style="display:inline;">
                                     <input type="hidden" name="id" value="<?= $res['id'] ?>">
-                                    <input type="hidden" name="table_id" value="<?= $res['table_id'] ?? 0 ?>">
                                     <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
                                         <option value="pending" <?= $res['status'] === 'pending' ? 'selected' : '' ?>>Pending</option>
                                         <option value="confirmed" <?= $res['status'] === 'confirmed' ? 'selected' : '' ?>>Confirmed</option>
@@ -87,7 +77,7 @@
                             </td>
                             <td>
                                 <a href="<?= BASE_URL ?>index.php?act=order-create&reservation_id=<?= $res['id'] ?>" class="btn btn-sm btn-info">📋</a>
-                                <a href="<?= BASE_URL ?>index.php?act=admin-manage-tables&id=<?= $res['id'] ?>" class="btn btn-sm btn-warning">🪑</a>
+                                <a href="<?= BASE_URL ?>index.php?act=admin-manage-tables&id=<?= $res['id'] ?>" class="btn btn-sm btn-warning">🪑 Assign</a>
                             </td>
                         </tr>
                     <?php } ?>
