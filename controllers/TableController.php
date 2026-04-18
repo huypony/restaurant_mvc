@@ -4,47 +4,42 @@ require_once 'models/Reservation.php';
 
 class TableController {
 
+    // API trả JSON cho sơ đồ bàn theo giờ (dùng trong create.php)
+    public function apiTableMap() {
+        header('Content-Type: application/json');
+        $time = $_GET['time'] ?? date('Y-m-d H:i:s');
+        // chuẩn hóa định dạng
+        $time = str_replace('T', ' ', $time);
+        
+        $tableModel = new Table();
+        $data = $tableModel->getTableMap($time);
+        
+        echo json_encode($data);
+        exit;
+    }
+
+    // Trang sơ đồ tổng quan
     public function layout() {
         $tableModel = new Table();
         $reservationModel = new Reservation();
         
         $tables = $tableModel->all();
-
         require 'views/tables/layout.php';
     }
 
+    // Chi tiết 1 bàn
     public function detail() {
-        if(!isset($_GET['id'])) {
+        $id = intval($_GET['id'] ?? 0);
+        if(!$id) {
             redirect(BASE_URL . 'index.php?act=tables-layout');
         }
 
-        $table_id = intval($_GET['id']);
         $tableModel = new Table();
         $reservationModel = new Reservation();
-        
-        $table = $tableModel->findById($table_id);
-        
-        if(!$table) {
-            $_SESSION['error'] = 'Bàn không tồn tại!';
-            redirect(BASE_URL . 'index.php?act=tables-layout');
-        }
 
-        // Lấy đặt bàn hiện tại/sắp tới chỉ cho bàn này
-        $reservationsForTable = $reservationModel->getReservationsByTable($table_id);
-        $reservation = null;
-        if(!empty($reservationsForTable)) {
-            $reservation = $reservationsForTable[0];
-        }
+        $table = $tableModel->findById($id);
+        $reservations = $reservationModel->getReservationsByTable($id);
 
         require 'views/tables/detail.php';
-    }
-
-
-    public function apiTableMap() {
-        header('Content-Type: application/json');
-        $time = $_GET['time'] ?? date('Y-m-d H:i:s');
-        $tableModel = new Table();
-        echo json_encode($tableModel->getTableMap($time));
-        exit;
     }
 }
