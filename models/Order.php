@@ -2,6 +2,8 @@
 require_once 'commons/function.php';
 
 class Order {
+
+        
     
     public function all() {
         $conn = connectDB();
@@ -175,4 +177,6 @@ class Order {
         $stmt->execute($params);
         return $stmt->fetchAll();
     }
+
+    
 }

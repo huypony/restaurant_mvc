@@ -38,4 +38,13 @@ class TableController {
 
         require 'views/tables/detail.php';
     }
+
+
+    public function apiTableMap() {
+        header('Content-Type: application/json');
+        $time = $_GET['time'] ?? date('Y-m-d H:i:s');
+        $tableModel = new Table();
+        echo json_encode($tableModel->getTableMap($time));
+        exit;
+    }
 }

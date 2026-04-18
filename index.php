@@ -51,6 +51,9 @@ match ($act) {
     'order-store' => (new OrderController())->store(),
     'order-list' => (new OrderController())->list(),
     'order-detail' => (new OrderController())->detail(),
+   
+
+    'api-table-map' => (new TableController())->apiTableMap(),
     
     // Table routes
     'tables-layout' => (new TableController())->layout(),
