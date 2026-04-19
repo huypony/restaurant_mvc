@@ -50,19 +50,20 @@ class Reservation {
         return $conn->query($sql)->fetchAll();
     }
 
-    public function update($id, $data) {
+   public function update($id, $data) {
         $conn = connectDB();
         $fields = [];
         $params = [':id' => $id];
-        if(isset($data[':status'])) {
-            $fields[] = "status = :status";
-            $params[':status'] = $data[':status'];
+        
+        foreach ($data as $key => $value) {
+            // Lấy tên cột bằng cách bỏ dấu ':' ở đầu key (VD: ':status' -> 'status')
+            $colName = ltrim($key, ':');
+            $fields[] = "$colName = $key";
+            $params[$key] = $value;
         }
-        if(isset($data[':table_id'])) {
-            $fields[] = "table_id = :table_id";
-            $params[':table_id'] = $data[':table_id'];
-        }
+        
         if(empty($fields)) return false;
+        
         $sql = "UPDATE reservations SET " . implode(", ", $fields) . " WHERE id = :id";
         $stmt = $conn->prepare($sql);
         return $stmt->execute($params);
